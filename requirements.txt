@@ -1,5 +1,9 @@
 langchain==0.0.266
 streamlit
+tiktoken
 openai
 unstructured==0.10.2
 python-dotenv
+faiss-cpu
+
+
