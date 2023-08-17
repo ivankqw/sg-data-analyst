@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 from definitions.dataset import Dataset
 from requests import JSONDecodeError
+from ast import literal_eval
 
 # Define the URLs - API v1
 package_list_url: str = "https://data.gov.sg/api/action/package_list"
@@ -111,6 +112,10 @@ def get_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_sear
 
     :return: the dataset :class `Any`
     """
+    # TODO: workaround for now 
+    if isinstance(ids, str):
+        ids = literal_eval(ids)
+
     datasets = []
     for id in ids:
         res = requests.get(f"{dataset_search_url}{id}")

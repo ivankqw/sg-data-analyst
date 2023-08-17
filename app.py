@@ -1,7 +1,6 @@
 from pprint import pprint
 from typing import List, Tuple, Dict, Any
-from langchain.agents import initialize_agent, Tool
-from langchain.agents import AgentType
+import openai
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 import asyncio
@@ -10,8 +9,10 @@ from definitions.dataset import Dataset
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
+from ast import literal_eval
 
 
+GPT_MODEL: str = "gpt-3.5-turbo-16k-0613"
 _ = load_dotenv(find_dotenv())
 
 query = "How many students were working part-time in 2019?"
@@ -34,22 +35,8 @@ db = FAISS.from_documents(dataset_docs, OpenAIEmbeddings())
 print(f"loaded documents into vector store!")
 fetched_docs = db.similarity_search(query)
 
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
 
-
-tools = [
-    Tool(
-        name="get_datasets_from_ids",
-        func=get_datasets_from_ids,
-        description="This is useful for when you need to retrieve datasets from a list of IDs.",
-    )
-]
-
-agent = initialize_agent(
-    tools, llm, agent=AgentType.OPENAI_FUNCTIONS, verbose=True)
-
-
-prompt = f"""Given that you know the following datasets with information given in triple backticks:
+q = f"""Given that you know the following datasets with information given in triple backticks:
 ```
 {fetched_docs}
 ```
@@ -60,6 +47,52 @@ Retrieve the relevant datasets that can answer the following query given in trip
 ```
 """
 
+messages = []
+messages.append({"role": "user", "content": q})
+
+functions = [
+    {
+        "name": "get_datasets_from_ids",
+        "description": "Get the datasets from the ids",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "The ids of the datasets",
+                    },
+                },
+            },
+            "required": ["ids"],
+        },
+    },
+]
+
+# TODO: refactor all these out into another file
+# get function inputs using openai once, forcefully
+try:
+    response = openai.ChatCompletion.create(
+        model=GPT_MODEL,
+        messages=messages,
+        functions=functions,
+        function_call={"name": "get_datasets_from_ids"},
+        temperature=0,
+    )
+except openai.error.OpenAIError:
+    # TODO: implement a retry mechanism
+    pass
+
+try:
+    ids_raw = response["choices"][0]["message"]["function_call"]["arguments"]
+    # then parse the arguments
+    ids_dict = literal_eval(ids_raw)
+    ids = ids_dict["ids"]
+except KeyError:
+    print("Could not retrieve ids.")
+    ids = []
+
 
 if __name__ == "__main__":
-    agent.run(prompt)
+    print(ids)
