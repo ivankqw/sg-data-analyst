@@ -5,8 +5,10 @@ import asyncio
 from definitions.dataset import Dataset
 from requests import JSONDecodeError
 from ast import literal_eval
+import pandas as pd
 
 # Define the URLs - API v1
+base_url: str = "https://data.gov.sg"
 package_list_url: str = "https://data.gov.sg/api/action/package_list"
 package_show_url: str = "https://data.gov.sg/api/action/package_show?id="
 dataset_search_url = "https://data.gov.sg/api/action/datastore_search?resource_id="
@@ -103,17 +105,8 @@ async def aget_csv_datasets(package_list_url: str = package_list_url, package_sh
                     ))
     return csv_datasets
 
-def _parse_results(result: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Parses the results from the dataset search.
 
-    :param result: the result from the dataset search :class `List[Dict[str, Any]]`
-
-    :return: the parsed result :class `List[Dict[str, Any]]`
-    """
-    # TODO: 
-    pass 
-
-def get_dataset_from_id(id: str, dataset_search_url: str = dataset_search_url) -> Any:
+def get_dataset_from_id(id: str, base_url: str = base_url, dataset_search_url: str = dataset_search_url) -> List[Dict[str, Any]]:
     """Returns the dataset from the id.
 
     :param id: the id of the dataset :class `str`
@@ -139,63 +132,40 @@ def get_dataset_from_id(id: str, dataset_search_url: str = dataset_search_url) -
                 and curr_json["result"]["_links"]["next"]
                 != curr_json["result"]["_links"]["prev"]
             ):
-                url = dataset_search_url + curr_json["result"]["_links"]["next"]
+                url = base_url + \
+                    curr_json["result"]["_links"]["next"]
             else:
                 url = None
         # TODO: handle this better
         except Exception as e:
-            print(e)
+            print(f"ERROR: {e}")
             return result  # return what we have so far
     return result
 
 
-def get_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_search_url) -> Any:
+def get_datasets_from_ids(ids: List[str], base_url: str = base_url, dataset_search_url: str = dataset_search_url) -> List[List[Dict[str, Any]]]:
     """Returns the dataset from the id.
 
     :param id: the id of the dataset :class `str`
     :param dataset_search_url: the url to get the dataset :class `str`
 
-    :return: the dataset :class `Any`
+    :return the dataset :class `List[List[Dict[str, Any]]]`
     """
-
     datasets = []
     for id in ids:
-        res = requests.get(f"{dataset_search_url}{id}")
-        try:
-            result = res.json()['result']
-            next_url = result[0]['_links']['next']
-            datasets.append(result)
-        except JSONDecodeError:
-            print(f"Could not retrieve dataset with id {id}.")
-            continue
-
+        result = get_dataset_from_id(id, base_url, dataset_search_url)
+        datasets.append(result)
     return datasets
 
 
-async def aget_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_search_url) -> Any:
-    """Returns the dataset from the id. This is done asynchronously.
+def _datasets_to_dataframes(datasets: List[List[Dict[str, Any]]]) -> List[pd.DataFrame]:
+    """Returns the dataset from the id.
 
-    :param id: the id of the dataset :class `str`
-    :param dataset_search_url: the url to get the dataset :class `str`
+    :param datasets: the datasets :class `List[Dict[str, Any]]`
 
-    :return: the dataset :class `Any`
+    :return the dataset :class `List[pd.DataFrame]`
     """
-
-    datasets = []
-    tasks = []
-    async with aiohttp.ClientSession() as session:
-        for id in ids:
-            task = asyncio.ensure_future(
-                session.get(f"{dataset_search_url}{id}"))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-
-        for i, response in enumerate(responses):
-            try:
-                result = await response.json()
-                datasets.append(result['result'])
-            except JSONDecodeError:
-                print(f"Could not retrieve dataset of id {ids[i]}.")
-                continue
-
-    return datasets
+    dataframes = []
+    for dataset in datasets:
+        dataframes.append(pd.DataFrame(dataset))
+    return dataframes

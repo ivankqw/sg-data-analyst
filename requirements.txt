@@ -5,5 +5,5 @@ openai
 unstructured==0.10.2
 python-dotenv
 faiss-cpu
-
+termcolor
 
