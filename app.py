@@ -1,73 +1,40 @@
-from typing import List
-from dotenv import load_dotenv, find_dotenv
-import asyncio
+from agent import SGDataAnalystAgent
+import streamlit as st
 
-from definitions.dataset import Dataset
-from api.openai_functions import generate_id_choices
-from api.datagov import aget_csv_datasets, get_datasets_from_ids, _datasets_to_dataframes
-from vector_store import split_and_store, similarity_search
+"""Thanks to https://blog.streamlit.io/how-to-build-an-llm-powered-chatbot-with-streamlit/"""
 
-from langchain.agents import create_pandas_dataframe_agent
-from langchain.chat_models import ChatOpenAI
-from langchain.agents.agent_types import AgentType
+# App title
+st.set_page_config(page_title="👩‍🔬📊 SG Data Analyst")
 
-import time
-import termcolor
-from pprint import pprint
+# Hugging Face Credentials
+with st.sidebar:
+    st.title('👩‍🔬📊 SG Data Analyst')
+    
+# Store LLM generated responses
+if "messages" not in st.session_state.keys():
+    st.session_state.messages = [{"role": "assistant", "content": "How may I help you?"}]
 
+# Display chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-_ = load_dotenv(find_dotenv())
+# Function for generating LLM response
+def generate_response(prompt_input):
+    # Create ChatBot                        
+    return SGDataAnalystAgent.run(prompt_input)
 
-source_url_base = "https://legacy.data.gov.sg/dataset/"
-color = "magenta"
-query = "What is the trend in university education?"
+# User-provided prompt
+if prompt := st.chat_input():
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.write(prompt)
 
-start = time.time()
-
-loop = asyncio.get_event_loop()
-
-csv_datasets: List[Dataset] = loop.run_until_complete(
-    aget_csv_datasets()
-)
-# TODO: Bottleneck
-print(termcolor.colored(
-    f"Obtained {len(csv_datasets)} datasets in {time.time() - start} seconds.", color))
-
-dataset_docs = [dataset.to_document() for dataset in csv_datasets]
-# put them into a dictionary as well for easy access
-dataset_docs_dict = {dataset.id: dataset for dataset in csv_datasets}
-
-# Load the document, split it into chunks, embed each chunk and load it into the vector store.
-db = split_and_store(dataset_docs)
-fetched_docs = similarity_search(db, query)
-
-fetched_datasets = [Dataset.from_document(doc) for doc in fetched_docs]
-
-# get the most relevant ids from the fetched docs
-ids = generate_id_choices(fetched_docs, query)
-
-# identify which datasets were chosen
-chosen_dataset_names = [dataset_docs_dict[id].name for id in ids]
-
-# get the datasets from the ids
-start = time.time()
-# TODO: Slight bottleneck
-chosen_datasets_full = get_datasets_from_ids(ids)
-print(termcolor.colored(
-    f"Obtained {len(chosen_datasets_full)} datasets in {time.time() - start} seconds."), color)
-
-# convert to dataframes
-chosen_dataset_dfs = _datasets_to_dataframes(chosen_datasets_full)
-
-llm = ChatOpenAI(temperature=0, model="gpt-4-0613")
-agent = create_pandas_dataframe_agent(
-    llm,
-    chosen_dataset_dfs,
-    verbose=True,
-    AgentType=AgentType.OPENAI_FUNCTIONS,
-)
-
-if __name__ == "__main__":
-    print(termcolor.colored(
-        f'Answering query "{query}" with the following datasets: {chosen_dataset_names}', "yellow"))
-    print(termcolor.colored(agent.run(query), color))
+# Generate a new response if last message is not from assistant
+if st.session_state.messages[-1]["role"] != "assistant":
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response = generate_response(prompt) 
+            st.write(response) 
+    message = {"role": "assistant", "content": response}
+    st.session_state.messages.append(message)
