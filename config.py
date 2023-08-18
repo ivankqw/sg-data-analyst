@@ -1,0 +1,1 @@
+GPT_MODEL: str = "gpt-4-0613"

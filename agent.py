@@ -2,6 +2,7 @@ from typing import List
 from dotenv import load_dotenv, find_dotenv
 import asyncio
 
+from config import GPT_MODEL
 from definitions.dataset import Dataset
 from api.openai_functions import generate_id_choices
 from api.datagov import aget_csv_datasets, get_datasets_from_ids, _datasets_to_dataframes
@@ -18,7 +19,6 @@ _ = load_dotenv(find_dotenv())
 
 source_url_base = "https://legacy.data.gov.sg/dataset/"
 color = "magenta"
-query = "What are some observations in university education?"
 
 
 class SGDataAnalystAgent:
@@ -61,7 +61,7 @@ class SGDataAnalystAgent:
         # convert to dataframes
         chosen_dataset_dfs = _datasets_to_dataframes(chosen_datasets_full)
 
-        llm = ChatOpenAI(temperature=0, model="gpt-4-0613")
+        llm = ChatOpenAI(temperature=0, model=GPT_MODEL)
         agent = create_pandas_dataframe_agent(
             llm,
             chosen_dataset_dfs,

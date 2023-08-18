@@ -3,9 +3,8 @@ from typing import List, Dict, Any
 import openai
 from prompts import get_dataset_ids_prompt
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from config import GPT_MODEL
 
-GPT_MODEL: str = "gpt-3.5-turbo-16k-0613"
-GPT_MODEL: str = "gpt-4-0613"
 
 def chat_with_retry(**kwargs) -> Any:
     @retry(
