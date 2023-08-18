@@ -1,9 +1,28 @@
 from ast import literal_eval
-from typing import List, Dict
+from typing import List, Dict, Any
 import openai
 from prompts import get_dataset_ids_prompt
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 GPT_MODEL: str = "gpt-3.5-turbo-16k-0613"
+GPT_MODEL: str = "gpt-4-0613"
+
+def chat_with_retry(**kwargs) -> Any:
+    @retry(
+        wait=wait_exponential(min=4, max=10),
+        stop=stop_after_attempt(10),
+        retry=(
+            retry_if_exception_type(openai.error.RateLimitError)
+            | retry_if_exception_type(openai.error.Timeout)
+            | retry_if_exception_type(openai.error.APIError)
+            | retry_if_exception_type(openai.error.APIConnectionError)
+            | retry_if_exception_type(openai.error.RateLimitError)
+            | retry_if_exception_type(openai.error.ServiceUnavailableError)
+        ),
+    )
+    def _chat_with_retry(**kwargs: Any) -> Any:
+        return openai.ChatCompletion.create(**kwargs)
+    return _chat_with_retry(**kwargs)
 
 
 def generate_id_choices(fetched_docs: List[Dict[str, str]], query: str) -> List[str]:
@@ -37,21 +56,14 @@ def generate_id_choices(fetched_docs: List[Dict[str, str]], query: str) -> List[
             },
         },
     ]
-
-    # TODO: refactor all these out into another file
-    # get function inputs using openai once, forcefully
-    try:
-        response = openai.ChatCompletion.create(
-            model=GPT_MODEL,
-            messages=messages,
-            functions=functions,
-            function_call={"name": "get_datasets_from_ids"},
-            temperature=0,
-        )
-    except openai.error.OpenAIError:
-        # TODO: implement a retry mechanism
-        print("there was an error with openai, skipping.")
-        response = {}
+    # get best ids using openai once, forcefully
+    response = chat_with_retry(
+        model=GPT_MODEL,
+        messages=messages,
+        functions=functions,
+        function_call={"name": "get_datasets_from_ids"},
+        temperature=0,
+    )
 
     try:
         ids_raw = response["choices"][0]["message"]["function_call"]["arguments"]

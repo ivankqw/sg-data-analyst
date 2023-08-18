@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from __future__ import annotations
+from dataclasses import dataclass, asdict
 from langchain.schema import Document
+import json
 
 
 @dataclass
@@ -9,12 +11,20 @@ class Dataset:
     name: str
     description: str
 
-    def __repr__(self):
-        return f"""Dataset(
-    id={self.id},
-    name={self.name},
-    description={self.description})
-    """
+    def to_document(self) -> Document:
+        """Converts the Dataset to a Document by serializing it to a JSON string.
+        
+        :return: the document :class `Document`
+        """
+        return Document(page_content=json.dumps(asdict(self)))
 
-    def to_document(self):
-        return Document(page_content=self.__repr__())
+    @staticmethod
+    def from_document(doc: Document) -> Dataset:
+        """Converts a Document to a Dataset by deserializing it from a JSON string.
+        
+        :param doc: the document :class `Document`
+
+        :return: the dataset :class `Dataset`
+        """
+        data = json.loads(doc.page_content)
+        return Dataset(**data)

@@ -3,8 +3,6 @@ import requests
 import aiohttp
 import asyncio
 from definitions.dataset import Dataset
-from requests import JSONDecodeError
-from ast import literal_eval
 import pandas as pd
 
 # Define the URLs - API v1
@@ -12,6 +10,9 @@ base_url: str = "https://data.gov.sg"
 package_list_url: str = "https://data.gov.sg/api/action/package_list"
 package_show_url: str = "https://data.gov.sg/api/action/package_show?id="
 dataset_search_url = "https://data.gov.sg/api/action/datastore_search?resource_id="
+
+
+"""Functions to get the datasets from data.gov.sg"""
 
 
 def get_dataset_names(package_list_url: str = package_list_url) -> List[str]:
