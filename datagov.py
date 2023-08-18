@@ -103,6 +103,51 @@ async def aget_csv_datasets(package_list_url: str = package_list_url, package_sh
                     ))
     return csv_datasets
 
+def _parse_results(result: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Parses the results from the dataset search.
+
+    :param result: the result from the dataset search :class `List[Dict[str, Any]]`
+
+    :return: the parsed result :class `List[Dict[str, Any]]`
+    """
+    # TODO: 
+    pass 
+
+def get_dataset_from_id(id: str, dataset_search_url: str = dataset_search_url) -> Any:
+    """Returns the dataset from the id.
+
+    :param id: the id of the dataset :class `str`
+    :param dataset_search_url: the url to get the dataset :class `str`
+
+    :return: the dataset :class `Any`
+    """
+    url = dataset_search_url + id
+    result = []
+    while url:
+        try:
+            curr_json = requests.get(url).json()
+            if not result:
+                # first time
+                result = curr_json["result"]["records"]
+            elif curr_json["result"]["records"]:
+                result.extend(curr_json["result"]["records"])
+            else:  # no more records
+                return result
+            # check if there is a next page or prev and next not the same
+            if ("next" in curr_json["result"]["_links"]) or (
+                "prev" in curr_json["result"]["_links"]
+                and curr_json["result"]["_links"]["next"]
+                != curr_json["result"]["_links"]["prev"]
+            ):
+                url = dataset_search_url + curr_json["result"]["_links"]["next"]
+            else:
+                url = None
+        # TODO: handle this better
+        except Exception as e:
+            print(e)
+            return result  # return what we have so far
+    return result
+
 
 def get_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_search_url) -> Any:
     """Returns the dataset from the id.
@@ -112,18 +157,45 @@ def get_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_sear
 
     :return: the dataset :class `Any`
     """
-    # TODO: workaround for now 
-    if isinstance(ids, str):
-        ids = literal_eval(ids)
 
     datasets = []
     for id in ids:
         res = requests.get(f"{dataset_search_url}{id}")
         try:
             result = res.json()['result']
+            next_url = result[0]['_links']['next']
             datasets.append(result)
         except JSONDecodeError:
             print(f"Could not retrieve dataset with id {id}.")
             continue
+
+    return datasets
+
+
+async def aget_datasets_from_ids(ids: List[str], dataset_search_url: str = dataset_search_url) -> Any:
+    """Returns the dataset from the id. This is done asynchronously.
+
+    :param id: the id of the dataset :class `str`
+    :param dataset_search_url: the url to get the dataset :class `str`
+
+    :return: the dataset :class `Any`
+    """
+
+    datasets = []
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        for id in ids:
+            task = asyncio.ensure_future(
+                session.get(f"{dataset_search_url}{id}"))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+
+        for i, response in enumerate(responses):
+            try:
+                result = await response.json()
+                datasets.append(result['result'])
+            except JSONDecodeError:
+                print(f"Could not retrieve dataset of id {ids[i]}.")
+                continue
 
     return datasets
