@@ -1,7 +1,7 @@
 from agent import SGDataAnalystAgent
 import streamlit as st
 
-"""Thanks to https://blog.streamlit.io/how-to-build-an-llm-powered-chatbot-with-streamlit/"""
+# Thanks to https://blog.streamlit.io/how-to-build-an-llm-powered-chatbot-with-streamlit/
 
 # App title
 st.set_page_config(page_title="👩‍🔬📊 SG Data Analyst")
