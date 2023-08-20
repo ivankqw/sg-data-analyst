@@ -6,7 +6,7 @@ from config import GPT_MODEL
 from definitions.dataset import Dataset
 from api.openai_functions import generate_id_choices
 from api.datagov import aget_csv_datasets, get_datasets_from_ids, _datasets_to_dataframes
-from vector_store import split_and_store, similarity_search
+from faiss import split_and_store, similarity_search
 
 from langchain.agents import create_pandas_dataframe_agent
 from langchain.chat_models import ChatOpenAI

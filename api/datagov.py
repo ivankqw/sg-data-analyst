@@ -55,7 +55,7 @@ async def aget_dataset_metadata(session: aiohttp.ClientSession, dataset_name: st
 
 
 def get_csv_datasets(package_list_url: str, package_show_url: str = package_show_url) -> List[Dataset]:
-    """Returns the datasets that are in CSV format.
+    """Returns the metadata of datasets that are in CSV format.
 
     :param package_list_url: the url to get the list of datasets :class `str`
     :param package_show_url: the url to get the metadata of a dataset :class `str`
