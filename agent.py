@@ -6,7 +6,7 @@ from config import GPT_MODEL
 from definitions.dataset import Dataset
 from api.openai_functions import generate_id_choices
 from api.datagov import aget_csv_datasets, get_datasets_from_ids, _datasets_to_dataframes
-from faiss import split_and_store, similarity_search
+from api.faiss_wrapper import split_and_store, similarity_search
 
 from langchain.agents import create_pandas_dataframe_agent
 from langchain.chat_models import ChatOpenAI
@@ -60,7 +60,7 @@ class SGDataAnalystAgent:
 
         # convert to dataframes
         chosen_dataset_dfs = _datasets_to_dataframes(chosen_datasets_full)
-
+        # GPT_MODEL="gpt-3.5-turbo-16k-0613"
         llm = ChatOpenAI(temperature=0, model=GPT_MODEL)
         agent = create_pandas_dataframe_agent(
             llm,

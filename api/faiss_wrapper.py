@@ -23,11 +23,11 @@ def split_and_store(dataset_docs: List[Document]) -> FAISS:
     dataset_split_docs = text_splitter.split_documents(dataset_docs)
     print(f"Loading split documents into vector store.")
     start = time.time()
-    db = FAISS.from_documents(dataset_docs, OpenAIEmbeddings())
+    vector_store = FAISS.from_documents(dataset_docs, OpenAIEmbeddings())
     # TODO: Bottleneck
     print(termcolor.colored(
         f"Loaded documents into vector store in {time.time() - start} seconds.", color))
-    return db
+    return vector_store
 
 def similarity_search(db: FAISS, query: str) -> List[Document]:
     """Performs a similarity search on the vector store.
