@@ -1,5 +1,7 @@
 # sg-data-analyst
 
+[Medium Article](https://ivankqw.medium.com/sg-data-analyst-question-answering-over-a-dataset-repository-with-reasoning-agents-dab7f05ed8bf)
+
 ## Explore Singapore Datasets with SG Data Analyst 🤖
 
 Based on your query, SG Data Analyst will find the most relevant datasets from [data.gov.sg](https://data.gov.sg/) and [data.gov.sg's API](https://developers.data.gov.sg/). 
